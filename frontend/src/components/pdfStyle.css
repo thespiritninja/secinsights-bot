@@ -1,0 +1,21 @@
+.custom-scrollbar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 50px;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #f0f0f0;
+  border-left: 1px solid #ccc;
+}
+
+.page-number {
+  padding: 10px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.page-number.highlighted {
+  background-color: #007bff;
+  color: #fff;
+}
