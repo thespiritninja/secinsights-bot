@@ -2,9 +2,16 @@
 import Chatbox from "@/components/chatbox";
 import Navbar from "@/components/navbar";
 import PDFViewer from "@/components/pdfviewer";
+import LoadingTimeline from "@/components/timelineComponent";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { FaArrowAltCircleDown, FaArrowAltCircleUp } from "react-icons/fa";
+import { useEffect, useRef, useState } from "react";
+import {
+  FaArrowAltCircleDown,
+  FaArrowAltCircleUp,
+  FaUser,
+} from "react-icons/fa";
+import { FaComputer, FaPen, FaPenFancy } from "react-icons/fa6";
 
 const sampleConvoData = {
   input: "can you give me 3Ms sales in millions for america?",
@@ -217,15 +224,97 @@ interface IChatStruct {
 }
 
 export default function Home() {
-  const [collapsed, setCollapsed] = useState<boolean>(false);
-  // revalidatePath("/");
-  const router = useRouter();
-  const handleCollapse = () => {
-    console.log(collapsed);
-    setCollapsed(!collapsed);
-  };
   const [filePath, setfilePath] = useState<string>("/3M_10K_File.pdf");
   const [convoData, setConvoData] = useState<IChatStruct>(sampleConvoData);
+  const [collapsed, setCollapsed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [timelineItems, setTimelineItems] = useState([
+    { label: "Searching document for", status: "pending" as const },
+    { label: "Defining Terminology", status: "pending" as const },
+    { label: "Calculating ROA", status: "pending" as const },
+  ]);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [annotatedAnswer, setAnnotatedAnswer] = useState<string>("");
+
+  const currDiv = useRef<HTMLDivElement>(null);
+  const currSave = useRef<HTMLButtonElement>(null);
+
+  const handleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
+
+  const handleSubmit = (values: { question: string }) => {
+    setLoading(true);
+    !collapsed ? setCollapsed(true) : setLoading(false);
+    setTimeout(() => {
+      setTimelineItems([
+        { label: "Searching document for", status: "in progress" as const },
+        { label: "Defining Terminology", status: "pending" as const },
+        { label: "Calculating ROA", status: "pending" as const },
+      ]);
+    }, 1000);
+
+    setTimeout(() => {
+      setTimelineItems([
+        { label: "Searching document for", status: "completed" as const },
+        { label: "Defining Terminology", status: "in progress" as const },
+        { label: "Calculating ROA", status: "pending" as const },
+      ]);
+    }, 3000);
+
+    setTimeout(() => {
+      setTimelineItems([
+        { label: "Searching document for", status: "completed" as const },
+        { label: "Defining Terminology", status: "completed" as const },
+        { label: "Calculating ROA", status: "in progress" as const },
+      ]);
+    }, 5000);
+
+    setTimeout(() => {
+      setTimelineItems([
+        { label: "Searching document for", status: "completed" as const },
+        { label: "Defining Terminology", status: "completed" as const },
+        { label: "Calculating ROA", status: "completed" as const },
+      ]);
+      setLoading(false);
+    }, 6000);
+  };
+  const handleAnnotate = () => {
+    // Trigger annotation tool
+    if (currDiv.current) {
+      currDiv.current.contentEditable = "true";
+      currDiv.current.focus();
+      setIsEditing(true);
+      // console.log(currDiv.current.textContent);
+    }
+  };
+  const handleSave = () => {
+    const newContent = currDiv.current?.textContent || "";
+    setAnnotatedAnswer(newContent);
+    setConvoData({ ...convoData, answer: newContent });
+    currDiv.current.contentEditable = "false";
+    setIsEditing(false);
+  };
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      currDiv.current &&
+      currSave.current &&
+      !currDiv.current.contains(event.target as Node) &&
+      !currSave.current.contains(event.target as Node)
+    ) {
+      setIsEditing(false);
+      if (currDiv.current) {
+        currDiv.current.contentEditable = "false";
+      }
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <main className="flex py-5 px-5 gap-2">
@@ -236,28 +325,65 @@ export default function Home() {
         </div>
       </div>
       <div className="flex flex-col h-full w-[50vw] items-center border-4 px-2 py-2 gap-2">
-        <div className="flex h-full w-full border-2 rounded-md flex-col px-2 py-2 ">
-          <div onClick={handleCollapse}>
-            {collapsed ? (
+        <div className="flex flex-col w-full h-full border-2 rounded-md">
+          <div className="flex justify-end">
+            <div className="border-2 rounded-lg mx-1 my-4 px-3">
+              {convoData.input}
+            </div>
+            <div className="flex items-end p-2 mx-1 mt-3 bg-slate-500 h-fit rounded-full">
               <div>
-                <div className="flex justify-end ">
-                  <FaArrowAltCircleUp />
-                </div>
-                <div className="w-full h-full">
-                  <div>item 2</div>
-                  <div>item 2</div>
-                  <div>item 2</div>
-                </div>
+                <FaUser />
               </div>
-            ) : (
-              <div className="flex justify-end ">
-                <FaArrowAltCircleDown />
+            </div>
+          </div>
+          <div className="flex justify-start">
+            <div className="flex items-start p-2 mx-1 mt-3 bg-purple-700 h-fit rounded-full text-white">
+              <div>
+                <FaComputer />
               </div>
-            )}
+            </div>
+            <div className="relative">
+              <div
+                className="relative border-2 rounded-lg mx-1 my-4 px-3 hover:cursor-pointer"
+                title="Edit Answer"
+                onClick={handleAnnotate}
+                ref={currDiv}
+              >
+                {convoData.answer}
+                {isEditing && (
+                  <Button
+                    onClick={handleSave}
+                    ref={currSave}
+                    className="absolute bottom-0 right-0 h-[45%] w-[15%] mb-1 mr-1 bg-purple-700  text-white rounded-md"
+                  >
+                    <FaPen />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
+        <div
+          className="flex h-full w-full border-2 rounded-md flex-col px-2 py-2 "
+          onClick={handleCollapse}
+        >
+          <div className="flex justify-start items-center">
+            <LoadingTimeline items={timelineItems} />
+          </div>
+          {collapsed ? (
+            <div className="flex flex-col">
+              <div>item 2</div>
+              <div>item 2</div>
+              <div>item 2</div>
+            </div>
+          ) : (
+            <div className="flex justify-end ">
+              <FaArrowAltCircleDown />
+            </div>
+          )}
+        </div>
         <div className="flex h-full w-full border-2 rounded-md flex-col px-2 py-2">
-          <Chatbox />
+          <Chatbox onSubmit={handleSubmit} />
         </div>
       </div>
     </main>

@@ -22,7 +22,11 @@ const formSchema = z.object({
   }),
 });
 
-export default function Chatbox() {
+export default function Chatbox({
+  onSubmit,
+}: {
+  onSubmit: (values: z.infer<typeof formSchema>) => void;
+}) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -30,14 +34,14 @@ export default function Chatbox() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+  function handleSubmit(values: z.infer<typeof formSchema>) {
+    onSubmit(values);
     form.resetField("question");
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         <FormField
           control={form.control}
           name="question"
