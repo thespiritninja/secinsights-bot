@@ -1,5 +1,5 @@
 import { GetStaticProps } from "next";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Worker,
   Viewer,
@@ -22,6 +22,8 @@ import "@react-pdf-viewer/search/lib/styles/index.css";
 import "@react-pdf-viewer/highlight/lib/styles/index.css";
 import { Button } from "./ui/button";
 import "./pdfStyle.css";
+import { FaX } from "react-icons/fa6";
+import { FaSearch } from "react-icons/fa";
 
 interface IContextData {
   pageContent: string;
@@ -59,17 +61,38 @@ interface ModalProps {
   isVisible: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  width: number;
+  height: number;
 }
 
-const Modal: React.FC<ModalProps> = ({ isVisible, onClose, children }) => {
+const Modal: React.FC<ModalProps> = ({
+  isVisible,
+  onClose,
+  children,
+  width,
+  height,
+}) => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed top-0 left-0 w-full h-full bg-white opacity-50 flex justify-center items-center z-10">
-      <div className="bg-white p-[20px] rounded-lg w-[80%] max-w-600px z-20">
-        <Button className="top-1" onClick={onClose}>
-          Close
-        </Button>
+    <div className="fixed inset-0 flex items-center z-10 bg-black bg-opacity-50">
+      <div
+        className="bg-white left-10 px-4 py-2 rounded-lg overflow-auto relative"
+        style={{
+          width: `${width}px`,
+          height: `${height}px`,
+          maxWidth: "90vw",
+          maxHeight: "90vh",
+        }}
+      >
+        <div className="flex justify-end items-center pb-1">
+          <Button
+            className="top-2 right-2 w-[45px] h-[45px] rounded-full"
+            onClick={onClose}
+          >
+            <FaX title="Close" />
+          </Button>
+        </div>
         {children}
       </div>
     </div>
@@ -137,10 +160,30 @@ function PDFViewer({
   const [contextData, setContextData] = useState<IContextData[]>(
     convoData?.context
   );
+  const [viewerDimensions, setViewerDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
+  const viewerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (viewerRef.current) {
+        setViewerDimensions({
+          width: viewerRef.current.offsetWidth,
+          height: viewerRef.current.offsetHeight,
+        });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
 
   const onDocumentLoadSuccess = (e: DocumentLoadEvent) => {
     setTotalPages(e.doc.numPages);
-    contextData.map((data, index) => {
+    contextData.forEach((data) => {
       setModalContent((modalContent) => {
         const isExisting = modalContent.some(
           (content) => content.pageNumber === data.metadata.page_number
@@ -163,21 +206,11 @@ function PDFViewer({
     setCurrentPage(e.currentPage);
   };
 
-  const highlightPage = () => {
-    if (contextData.length > 0) {
-      const pageNumbers = contextData.map((data) => data.metadata.page_number);
-      const uniquePageNumbers = Array.from(new Set(pageNumbers));
-      if (uniquePageNumbers.length > 0) {
-        jumpToPage(uniquePageNumbers[0] - 1);
-      }
-    }
-  };
-
   return (
     <Worker
       workerUrl={`https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.js`}
     >
-      <div className="h-full w-full flex flex-col">
+      <div className="h-full w-full flex flex-col relative">
         <div className="flex justify-between p-2">
           <div className="flex flex-wrap border-2 w-full items-center justify-between">
             <ZoomOutButton />
@@ -186,18 +219,18 @@ function PDFViewer({
             <GoToPreviousPage />
             <GoToNextPage />
             <CurrentPageInput />
-            <Button onClick={highlightPage} className="border p-1">
-              Highlight Page
-            </Button>
             <Button
               onClick={() => setModalVisible(true)}
               className="border p-1"
             >
-              Open Modal
+              Context
             </Button>
           </div>
         </div>
-        <div className="flex relative overflow-hidden hover:overflow-y-auto">
+        <div
+          className="flex relative overflow-hidden hover:overflow-y-auto h-full"
+          ref={viewerRef}
+        >
           <Viewer
             fileUrl={filePath}
             defaultScale={SpecialZoomLevel.PageWidth}
@@ -214,25 +247,43 @@ function PDFViewer({
               </div>
             )}
           />
-        </div>
-        <Modal
-          isVisible={isModalVisible}
-          onClose={() => setModalVisible(!isModalVisible)}
-        >
-          {modalContent?.map((content, index) => (
-            <div key={index} className="p-2">
-              Page {content.pageNumber}: {content.pageContent}
-              <Button onClick={() => setModalVisible(false)}>Close</Button>
-              <Button
-                onClick={() => {
-                  jumpToPage(content.pageNumber - 1);
-                }}
-              >
-                Jump to Page
-              </Button>
+          <Modal
+            isVisible={isModalVisible}
+            onClose={() => setModalVisible(!isModalVisible)}
+            width={viewerDimensions.width}
+            height={viewerDimensions.height}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {modalContent?.map((content, index) => (
+                <div
+                  key={index}
+                  className="p-4 bg-white rounded-lg shadow-md border h-64 overflow-hidden flex flex-col"
+                >
+                  <div className="font-semibold text-lg mb-2 bg-blue-500 w-[30px] h-[30px] rounded-full text-center">
+                    {index + 1}
+                  </div>
+                  <div className="text-gray-700 w-150 h-60 overflow-hidden overflow-ellipsis whitespace-normal hover:overflow-y-auto">
+                    {content.pageContent}
+                  </div>
+                  <div className="mt-4 flex justify-between">
+                    <Button onClick={() => setModalVisible(false)}>
+                      <FaX title="Close" />
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        jumpToPage(content.pageNumber - 1);
+                        setModalVisible(false);
+                      }}
+                      title={`Show on page ${content.pageNumber}`}
+                    >
+                      <FaSearch />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </Modal>
+          </Modal>
+        </div>
       </div>
     </Worker>
   );
