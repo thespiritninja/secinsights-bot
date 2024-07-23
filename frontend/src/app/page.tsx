@@ -1,17 +1,11 @@
 "use client";
 import Chatbox from "@/components/chatbox";
+import ChatWindow from "@/components/conversationWindow";
 import Navbar from "@/components/navbar";
 import PDFViewer from "@/components/pdfviewer";
 import LoadingTimeline from "@/components/timelineComponent";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import {
-  FaArrowAltCircleDown,
-  FaArrowAltCircleUp,
-  FaUser,
-} from "react-icons/fa";
-import { FaComputer, FaPen, FaPenFancy } from "react-icons/fa6";
+import { useState } from "react";
+import { FaArrowAltCircleDown } from "react-icons/fa";
 
 const sampleConvoData = {
   input: "can you give me 3Ms sales in millions for america?",
@@ -197,47 +191,16 @@ const sampleConvoData = {
     "3M's sales in the Americas for the full year 2022 were $15.0 billion, which is equivalent to $15,000 million.",
 };
 
-interface IContextData {
-  pageContent: string;
-  metadata: {
-    detection_class_prob: number;
-    coordinates: {
-      points: number[][];
-      system: string;
-      layout_width: number;
-      layout_height: number;
-    };
-    last_modified: string;
-    filetype: string;
-    languages: string[];
-    page_number: number;
-    parent_id: string;
-    file_directory: string;
-    filename: string;
-  };
-}
-interface IChatStruct {
-  input: string;
-  chat_history?: any[];
-  context: IContextData[];
-  answer: string;
-}
-
 export default function Home() {
   const [filePath, setfilePath] = useState<string>("/3M_10K_File.pdf");
-  const [convoData, setConvoData] = useState<IChatStruct>(sampleConvoData);
   const [collapsed, setCollapsed] = useState(false);
+  const [convoData, setConvoData] = useState<IChatStruct>(sampleConvoData);
   const [loading, setLoading] = useState(false);
   const [timelineItems, setTimelineItems] = useState([
     { label: "Searching document for", status: "pending" as const },
     { label: "Defining Terminology", status: "pending" as const },
     { label: "Calculating ROA", status: "pending" as const },
   ]);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [annotatedAnswer, setAnnotatedAnswer] = useState<string>("");
-
-  const currDiv = useRef<HTMLDivElement>(null);
-  const currSave = useRef<HTMLButtonElement>(null);
 
   const handleCollapse = () => {
     setCollapsed(!collapsed);
@@ -279,42 +242,6 @@ export default function Home() {
       setLoading(false);
     }, 6000);
   };
-  const handleAnnotate = () => {
-    // Trigger annotation tool
-    if (currDiv.current) {
-      currDiv.current.contentEditable = "true";
-      currDiv.current.focus();
-      setIsEditing(true);
-      // console.log(currDiv.current.textContent);
-    }
-  };
-  const handleSave = () => {
-    const newContent = currDiv.current?.textContent || "";
-    setAnnotatedAnswer(newContent);
-    setConvoData({ ...convoData, answer: newContent });
-    currDiv.current.contentEditable = "false";
-    setIsEditing(false);
-  };
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-      currDiv.current &&
-      currSave.current &&
-      !currDiv.current.contains(event.target as Node) &&
-      !currSave.current.contains(event.target as Node)
-    ) {
-      setIsEditing(false);
-      if (currDiv.current) {
-        currDiv.current.contentEditable = "false";
-      }
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   return (
     <main className="flex py-5 px-5 gap-2">
@@ -326,42 +253,7 @@ export default function Home() {
       </div>
       <div className="flex flex-col h-full w-[50vw] items-center border-4 px-2 py-2 gap-2">
         <div className="flex flex-col w-full h-full border-2 rounded-md">
-          <div className="flex justify-end">
-            <div className="border-2 rounded-lg mx-1 my-4 px-3">
-              {convoData.input}
-            </div>
-            <div className="flex items-end p-2 mx-1 mt-3 bg-slate-500 h-fit rounded-full">
-              <div>
-                <FaUser />
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-start">
-            <div className="flex items-start p-2 mx-1 mt-3 bg-purple-700 h-fit rounded-full text-white">
-              <div>
-                <FaComputer />
-              </div>
-            </div>
-            <div className="relative">
-              <div
-                className="relative border-2 rounded-lg mx-1 my-4 px-3 hover:cursor-pointer"
-                title="Edit Answer"
-                onClick={handleAnnotate}
-                ref={currDiv}
-              >
-                {convoData.answer}
-                {isEditing && (
-                  <Button
-                    onClick={handleSave}
-                    ref={currSave}
-                    className="absolute bottom-0 right-0 h-[45%] w-[15%] mb-1 mr-1 bg-purple-700  text-white rounded-md"
-                  >
-                    <FaPen />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
+          <ChatWindow chatData={convoData} setChatData={setConvoData} />
         </div>
         <div
           className="flex h-full w-full border-2 rounded-md flex-col px-2 py-2 "
