@@ -4,6 +4,7 @@ import ChatWindow from "@/components/conversationWindow";
 import Navbar from "@/components/navbar";
 import PDFViewer from "@/components/pdfviewer";
 import LoadingTimeline from "@/components/timelineComponent";
+import { createTestEntry, createQuestionDBEntry } from "@/db/actions";
 import { useState } from "react";
 import { FaArrowAltCircleDown } from "react-icons/fa";
 
@@ -190,11 +191,11 @@ const sampleConvoData = {
   answer:
     "3M's sales in the Americas for the full year 2022 were $15.0 billion, which is equivalent to $15,000 million.",
 };
-
 export default function Home() {
   const [filePath, setfilePath] = useState<string>("/3M_10K_File.pdf");
   const [collapsed, setCollapsed] = useState(false);
   const [convoData, setConvoData] = useState<IChatStruct>(sampleConvoData);
+  const [questions, setQuestions] = useState<IQuestionStruct[]>([]);
   const [loading, setLoading] = useState(false);
   const [timelineItems, setTimelineItems] = useState([
     { label: "Searching document for", status: "pending" as const },
@@ -205,8 +206,19 @@ export default function Home() {
   const handleCollapse = () => {
     setCollapsed(!collapsed);
   };
-
-  const handleSubmit = (values: { question: string }) => {
+  const formatQuestionData = (data: IChatStruct) => {
+    const dbData: dbConversationStruct = {
+      q_id: crypto.randomUUID(),
+      question: data.input,
+      model_answer: data.answer,
+      model_context: data.context,
+      is_annotated: false,
+      annotated_answer: "",
+      annotated_context: data.context,
+    };
+    return dbData;
+  };
+  const handleSubmit = async (values: { question: string }) => {
     setLoading(true);
     !collapsed ? setCollapsed(true) : setLoading(false);
     setTimeout(() => {
@@ -241,6 +253,13 @@ export default function Home() {
       ]);
       setLoading(false);
     }, 6000);
+    await createTestEntry();
+    const questionData = formatQuestionData(convoData);
+    const response = await createQuestionDBEntry(questionData);
+    setQuestions([
+      ...questions,
+      { question: values.question, q_id: response.q_id },
+    ]);
   };
 
   return (
@@ -253,7 +272,11 @@ export default function Home() {
       </div>
       <div className="flex flex-col h-full w-[50vw] items-center border-4 px-2 py-2 gap-2">
         <div className="flex flex-col w-full h-full border-2 rounded-md">
-          <ChatWindow chatData={convoData} setChatData={setConvoData} />
+          <ChatWindow
+            chatData={convoData}
+            setChatData={setConvoData}
+            questions={questions}
+          />
         </div>
         <div
           className="flex h-full w-full border-2 rounded-md flex-col px-2 py-2 "

@@ -25,36 +25,6 @@ import "./pdfStyle.css";
 import { FaX } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
 
-interface IContextData {
-  pageContent: string;
-  metadata: {
-    detection_class_prob: number;
-    coordinates: {
-      points: number[][];
-      system: string;
-      layout_width: number;
-      layout_height: number;
-    };
-    last_modified: string;
-    filetype: string;
-    languages: string[];
-    page_number: number;
-    parent_id: string;
-    file_directory: string;
-    filename: string;
-  };
-}
-interface IChatStruct {
-  input: string;
-  chat_history?: any[];
-  context: IContextData[];
-  answer: string;
-}
-
-interface IModalContextData {
-  pageContent: string;
-  pageNumber: number;
-}
 const pdfjsVersion = "3.11.174";
 
 interface ModalProps {
@@ -266,7 +236,15 @@ function PDFViewer({
                     {content.pageContent}
                   </div>
                   <div className="mt-4 flex justify-between">
-                    <Button onClick={() => setModalVisible(false)}>
+                    <Button
+                      onClick={() => {
+                        setModalContent((modalContent) => {
+                          const updatedContent = [...modalContent];
+                          updatedContent.splice(index, 1);
+                          return updatedContent;
+                        });
+                      }}
+                    >
                       <FaX title="Close" />
                     </Button>
                     <Button

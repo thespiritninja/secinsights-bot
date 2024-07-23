@@ -1,13 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FaComputer, FaPen, FaUser } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
+import { getuid } from "process";
+import { updateQuestionDBEntry } from "@/db/actions";
 
 interface ChatWindowProps {
   chatData: IChatStruct;
   setChatData: (chatData: IChatStruct) => void;
+  questions: IQuestionStruct[];
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ chatData, setChatData }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({
+  chatData,
+  setChatData,
+  questions,
+}) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [annotatedAnswer, setAnnotatedAnswer] = useState<string>(
     chatData.answer
@@ -22,16 +29,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatData, setChatData }) => {
       setIsEditing(true);
     }
   };
+  const formatData = (currChat: IChatStruct, annotated_answer: string) => {
+    const annotatedData: dbConversationStruct = {
+      q_id: questions[0].q_id,
+      is_annotated: true,
+      annotated_answer: annotated_answer,
+      annotated_context: currChat.context,
+    };
+    return annotatedData;
+  };
 
-  const handleSave = (e: React.MouseEvent) => {
+  const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (currDiv.current) {
       const newContent = currDiv.current.textContent || "";
       setAnnotatedAnswer(newContent);
       setChatData({ ...chatData, answer: newContent });
       currDiv.current.contentEditable = "false";
+      debugger;
+      const updates = formatData(chatData, newContent);
+      const response = await updateQuestionDBEntry(updates);
       setIsEditing(false);
-      console.log("Saved:", newContent);
+
+      console.log("Updated: ", response);
     }
   };
 
