@@ -23,3 +23,23 @@ interface IChatStruct {
   context: IContextData[];
   answer: string;
 }
+
+interface IModalContextData {
+  pageContent: string;
+  pageNumber: number;
+}
+
+interface IQuestionStruct {
+  question: string;
+  q_id: string;
+}
+
+interface dbConversationStruct {
+  q_id?: string;
+  question?: string;
+  model_answer?: string;
+  model_context?: IContextData[];
+  is_annotated?: boolean;
+  annotated_answer?: string;
+  annotated_context?: IContextData[];
+}
