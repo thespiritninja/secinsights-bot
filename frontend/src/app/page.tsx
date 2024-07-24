@@ -4,9 +4,16 @@ import ChatWindow from "@/components/conversationWindow";
 import Navbar from "@/components/navbar";
 import PDFViewer from "@/components/pdfviewer";
 import LoadingTimeline from "@/components/timelineComponent";
-import { createTestEntry, createQuestionDBEntry } from "@/db/actions";
+import { Button } from "@/components/ui/button";
+import {
+  createTestEntry,
+  createQuestionDBEntry,
+  getAnnotatedQuestions,
+} from "@/db/actions";
 import { useState } from "react";
 import { FaArrowAltCircleDown } from "react-icons/fa";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const sampleConvoData = {
   input: "can you give me 3Ms sales in millions for america?",
@@ -189,7 +196,7 @@ const sampleConvoData = {
     },
   ],
   answer:
-    "3M's sales in the Americas for the full year 2022 were $15.0 billion, which is equivalent to $15,000 million.",
+    "3M's sales in the Americas were $15,000 million for each of the years 2022 and 2021, and $13,900 million for 2020.",
 };
 export default function Home() {
   const [filePath, setfilePath] = useState<string>("/3M_10K_File.pdf");
@@ -261,17 +268,44 @@ export default function Home() {
       { question: values.question, q_id: response.q_id },
     ]);
   };
+  const handleImportAnnotation = async () => {
+    const response = await getAnnotatedQuestions();
+    console.log(response);
+    const data = [
+      {
+        q_id: response.q_id,
+        question: response.question,
+        model_answer: response.model_answer,
+        model_context: JSON.stringify(response.model_context),
+        is_annotated: response.is_annotated,
+        annotated_answer: response.annotated_answer,
+        annotated_context: JSON.stringify(response.annotated_context),
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Annotations");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+
+    saveAs(blob, "annotations.xlsx");
+  };
 
   return (
-    <main className="flex py-5 px-5 gap-2">
+    <main className="flex gap-2">
       <Navbar setfilePath={setfilePath} />
       <div className="flex flex-col h-screen w-[50vw] items-center border-4 ml-7 px-2 py-2">
         <div className="container flex flex-col h-full items-center border px-2 py-2">
           <PDFViewer filePath={filePath} convoData={convoData} />
         </div>
       </div>
-      <div className="flex flex-col h-full w-[50vw] items-center border-4 px-2 py-2 gap-2">
-        <div className="flex flex-col w-full h-full border-2 rounded-md">
+      <div className="flex flex-col h-screen w-[50vw]  border-4 px-2 py-2 gap-2">
+        <div className="flex flex-col w-full h-[70%] border-2 rounded-md overflow-y-scroll">
           <ChatWindow
             chatData={convoData}
             setChatData={setConvoData}
@@ -279,7 +313,7 @@ export default function Home() {
           />
         </div>
         <div
-          className="flex h-full w-full border-2 rounded-md flex-col px-2 py-2 "
+          className="flex h-[30%] w-full border-2 rounded-md flex-col px-2 py-2 "
           onClick={handleCollapse}
         >
           <div className="flex justify-start items-center">
@@ -297,8 +331,13 @@ export default function Home() {
             </div>
           )}
         </div>
-        <div className="flex h-full w-full border-2 rounded-md flex-col px-2 py-2">
+        <div className="flex h-[30%] w-full border-2 rounded-md flex-col px-2 py-2">
           <Chatbox onSubmit={handleSubmit} />
+        </div>
+        <div className="flex justify-end bottom-0 right-0">
+          <Button onClick={handleImportAnnotation}>
+            Import Annotated Questions
+          </Button>
         </div>
       </div>
     </main>

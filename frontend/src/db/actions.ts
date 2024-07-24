@@ -31,3 +31,10 @@ export async function updateQuestionDBEntry(
   revalidatePath("/");
   return response[0];
 }
+export async function getAnnotatedQuestions() {
+  const response = await database
+    .select()
+    .from(conversation)
+    .where(eq(conversation.is_annotated, true));
+  return response[0];
+}
