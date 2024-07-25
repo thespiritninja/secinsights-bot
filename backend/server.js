@@ -36,58 +36,38 @@ app.use(
 function parseJSONtoDocs(jsonData) {
   return jsonData.map((item) => ({
     pageContent: item.text,
-    metadata: item.metadata,
+    metadata: {
+      ...item.metadata,
+      coordinates_points: JSON.stringify(item.metadata.coordinates.points),
+      coordinates_system: item.metadata.coordinates.system,
+      coordinates_layout_width: item.metadata.coordinates.layout_width,
+      coordinates_layout_height: item.metadata.coordinates.layout_height,
+    },
   }));
 }
+
 async function initDB() {
-  // Load PDF
-  // const loader = new PDFLoader(path.join(__dirname, "public", "3M_10K.pdf"));
-  // const docs = await loader.load();
-  const docs = parseJSONtoDocs(tempData).map((item) => new Document(item));
-  //Uncomment this block if something fails!
-  // Create Vector Embeddings
-  // const textSplitter = new RecursiveCharacterTextSplitter({
-  //   chunkSize: 1000,
-  //   chunkOverlap: 200,
-  // });
-
-  // const splits = await textSplitter.splitDocuments(docs);
-
-  const vectorstore = await Chroma.fromDocuments(docs, new OpenAIEmbeddings(), {
-    collectionName: "documents",
-    collectionMetadata: {
-      "hnsw:space": "cosine",
-    },
-  });
-  //   // Build Retreiver Logic
-  //   const retriever = vectorstore.asRetriever((kOrFields = 10));
-
-  //   // Create Retrieval Chain
-  //   const systemTemplate = `You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise.
-
-  // {context}
-
-  // Current conversation:
-  // {chat_history}
-  // Human: {input}
-  // AI: `;
-
-  //   const prompt = ChatPromptTemplate.fromTemplate(systemTemplate);
-
-  //   const questionAnswerChain = await createStuffDocumentsChain({
-  //     llm: model,
-  //     prompt,
-  //   });
-
-  //   return { retriever, questionAnswerChain };
-  return vectorstore;
+  const persistDirectory = path.join(__dirname, "chroma_data");
+  try {
+    // Try to load existing vectorstore
+    vectorstore = await Chroma.fromExistingCollection(new OpenAIEmbeddings(), {
+      collectionName: "documents",
+      directory: persistDirectory,
+    });
+    console.log("Existing vectorstore loaded");
+    return vectorstore;
+  } catch (error) {
+    // If loading fails, create a new vectorstore
+    console.log("Error loading vectorstore");
+    return Promise.reject(new Error("Error loading vectorstore"));
+  }
 }
 
 async function buildRetriever(vectorstore) {
   const retriever = vectorstore.asRetriever((kOrFields = 7));
 
   // Create Retrieval Chain
-  const systemTemplate = `You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise.
+  const systemTemplate = `You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Please cite all the references for the numerical figures and keywords in square brackets containing index number of the context object from the context array you provide with the answer.
 
 {context}
 
@@ -121,25 +101,50 @@ app.listen(PORT, async (error) => {
 app.get("/", async (req, res) => {
   try {
     // res.json(parseJSONtoDocs(tempData));
-    const docs = parseJSONtoDocs(tempData).map((item) => new Document(item));
-    // const textSplitter = new RecursiveCharacterTextSplitter({
-    //   chunkSize: 1000,
-    //   chunkOverlap: 200,
-    // });
+    // const docs = parseJSONtoDocs(tempData).map((item) => new Document(item));
+    // // const textSplitter = new RecursiveCharacterTextSplitter({
+    // //   chunkSize: 1000,
+    // //   chunkOverlap: 200,
+    // // });
 
-    // const splits = await textSplitter.splitDocuments(docs);
-    // res.json(splits);
-    res.json(docs);
-    // res.status(200).json({ message: "Server Success" });
+    // // const splits = await textSplitter.splitDocuments(docs);
+    // // res.json(splits);
+    // const vectorstore = await Chroma.fromDocuments(
+    //   docs,
+    //   new OpenAIEmbeddings(),
+    //   {
+    //     collectionName: "documents",
+    //     collectionMetadata: {
+    //       "hnsw:space": "cosine",
+    //     },
+    //   }
+    // );
+    // res.json(vectorstore);
+    res.status(200).json({ message: "Server Success" });
   } catch (e) {
     res.status(500).json({ message: "Error ", error: e.message });
+  }
+});
+
+app.get("/create", async (req, res) => {
+  try {
+    const docs = parseJSONtoDocs(tempData).map((item) => new Document(item));
+    vectorstore = await Chroma.fromDocuments(docs, new OpenAIEmbeddings(), {
+      collectionName: "documents",
+      collectionMetadata: {
+        "hnsw:space": "cosine",
+      },
+    });
+    res.status(200).json({ message: "DB Created successfully" });
+  } catch (e) {
+    res.status(500).json({ message: "Error creating chain", error: e.message });
   }
 });
 
 app.get("/initialise", async (req, res) => {
   try {
     vectorstore = await initDB();
-    res.status(200).json({ message: "DB Created successfully" });
+    res.status(200).json({ message: "DB Loaded successfully" });
   } catch (e) {
     res
       .status(500)
