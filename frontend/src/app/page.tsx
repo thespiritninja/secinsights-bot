@@ -268,7 +268,6 @@ export default function Home() {
     } catch (error) {
       console.error("Error in handleSubmit:", error);
     }
-    // await createTestEntry();
     const questionData = formatQuestionData(
       modelResponse[modelResponse.length - 1]
     );
