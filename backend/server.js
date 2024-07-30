@@ -14,9 +14,16 @@ const { ChromaClient } = require("chromadb");
 const { Chroma } = require("@langchain/community/vectorstores/chroma");
 const { BufferMemory } = require("langchain/memory");
 const session = require("express-session");
+const cors = require("cors");
 
 const app = express();
 const PORT = 8001;
+const corsOptions = {
+  origin: "http://localhost:3000",
+  optionsSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
+
 const client = new ChromaClient();
 const { Document } = require("langchain/document");
 
@@ -185,6 +192,7 @@ app.get("/query", async (req, res) => {
   const query = req.query.question;
   // console.log(query);
   try {
+    console.log("Server hit for query: " + query);
     if (!req.session.memory) {
       req.session.memory = new BufferMemory({
         memoryKey: "chat_history",
@@ -206,6 +214,7 @@ app.get("/query", async (req, res) => {
     // });
     res.status(200).json(results);
   } catch (e) {
+    console.log("Error occured: " + e.message);
     res
       .status(500)
       .json({ message: "Error executing query", error: e.message });
