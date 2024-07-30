@@ -17,6 +17,25 @@ interface IContextData {
     filename: string;
   };
 }
+
+interface IUpdateContextData {
+  pageContent: string;
+  metadata: {
+    detection_class_prob: number;
+    coordinates_layout_height: number;
+    coordinates_layout_width: number;
+    coordinates_points: string;
+    coordinates_system: string;
+    last_modified: string;
+    filetype: string;
+    languages: string[];
+    page_number: number;
+    parent_id: string;
+    file_directory: string;
+    filename: string;
+  };
+}
+
 interface IChatStruct {
   input: string;
   chat_history?: any[];

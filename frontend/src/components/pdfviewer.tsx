@@ -84,14 +84,14 @@ function PDFViewer({
     pageNavigationPluginInstance;
 
   const renderHighlights = (props: RenderHighlightsProps) => {
-    return contextData.map((data, index) => {
+    return contextData?.map((data, index) => {
       if (data.metadata.page_number - 1 !== props.pageIndex) {
         return null;
       }
-      const layoutWidth = data.metadata.coordinates.layout_width;
-      const layoutHeight = data.metadata.coordinates.layout_height;
-      const points = data.metadata.coordinates.points;
-      if (points.length === 4) {
+      const layoutWidth = data.metadata.coordinates_layout_width;
+      const layoutHeight = data.metadata.coordinates_layout_height;
+      const points = JSON.parse(data.metadata.coordinates_points);
+      if (points?.length === 4) {
         const [topLeft, bottomLeft, bottomRight, topRight] = points;
 
         const top = (topLeft[1] / layoutHeight) * 100;
@@ -127,7 +127,7 @@ function PDFViewer({
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [jumpPage, setJumpPage] = useState<number>(currentPage);
-  const [contextData, setContextData] = useState<IContextData[]>(
+  const [contextData, setContextData] = useState<IUpdateContextData[]>(
     convoData?.context
   );
   const [viewerDimensions, setViewerDimensions] = useState({
@@ -150,10 +150,21 @@ function PDFViewer({
 
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
+  useEffect(() => {
+    setContextData(convoData?.context);
+  }, [convoData]);
+  useEffect(() => {
+    setModalContent(
+      contextData?.map((data) => ({
+        pageContent: data.pageContent,
+        pageNumber: data.metadata.page_number,
+      }))
+    );
+  }, [contextData]);
 
   const onDocumentLoadSuccess = (e: DocumentLoadEvent) => {
     setTotalPages(e.doc.numPages);
-    contextData.forEach((data) => {
+    contextData?.forEach((data) => {
       setModalContent((modalContent) => {
         const isExisting = modalContent.some(
           (content) => content.pageNumber === data.metadata.page_number

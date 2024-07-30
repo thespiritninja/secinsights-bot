@@ -201,9 +201,11 @@ const sampleConvoData = {
 export default function Home() {
   const [filePath, setfilePath] = useState<string>("/3M_10K_File.pdf");
   const [collapsed, setCollapsed] = useState(false);
-  const [convoData, setConvoData] = useState<IChatStruct>(sampleConvoData);
+  const [convoData, setConvoData] = useState<IChatStruct>([]);
   const [questions, setQuestions] = useState<IQuestionStruct[]>([]);
   const [loading, setLoading] = useState(false);
+  const [modelResponse, setModelResponse] = useState<IChatStruct[]>([]);
+
   const [timelineItems, setTimelineItems] = useState([
     { label: "Searching document for", status: "pending" as const },
     { label: "Defining Terminology", status: "pending" as const },
@@ -260,14 +262,31 @@ export default function Home() {
       ]);
       setLoading(false);
     }, 6000);
-    await createTestEntry();
-    const questionData = formatQuestionData(convoData);
-    const response = await createQuestionDBEntry(questionData);
-    setQuestions([
-      ...questions,
-      { question: values.question, q_id: response.q_id },
-    ]);
+    try {
+      const model_response = await fetchConvoData(values.question);
+      setModelResponse((prevResponses) => [...prevResponses, model_response]);
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+    }
+    // await createTestEntry();
+    // const questionData = formatQuestionData(convoData);
+    // const response = await createQuestionDBEntry(questionData);
+    setQuestions([...questions, { question: values.question, q_id: "123456" }]);
   };
+
+  const fetchConvoData = async (question: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8001/query?question=${question}`
+      );
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      return null;
+    }
+  };
+
   const handleImportAnnotation = async () => {
     const response = await getAnnotatedQuestions();
     console.log(response);
@@ -307,9 +326,10 @@ export default function Home() {
       <div className="flex flex-col h-screen w-[50vw]  border-4 px-2 py-2 gap-2">
         <div className="flex flex-col w-full h-[70%] border-2 rounded-md overflow-y-scroll">
           <ChatWindow
-            chatData={convoData}
-            setChatData={setConvoData}
+            chatData={modelResponse}
+            setChatData={setModelResponse}
             questions={questions}
+            setConvoData={setConvoData}
           />
         </div>
         <div
