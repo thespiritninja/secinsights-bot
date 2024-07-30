@@ -93,7 +93,6 @@ function PDFViewer({
       const points = JSON.parse(data.metadata.coordinates_points);
       if (points?.length === 4) {
         const [topLeft, bottomLeft, bottomRight, topRight] = points;
-
         const top = (topLeft[1] / layoutHeight) * 100;
         const left = (topLeft[0] / layoutWidth) * 100;
         const width = ((bottomRight[0] - topLeft[0]) / layoutWidth) * 100;
@@ -112,6 +111,7 @@ function PDFViewer({
               pointerEvents: "none",
               zIndex: 1000,
             }}
+            title={(index + 1).toString()}
           />
         );
       }

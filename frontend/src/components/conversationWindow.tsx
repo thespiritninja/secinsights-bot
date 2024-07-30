@@ -20,10 +20,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const [annotatedAnswers, setAnnotatedAnswers] = useState<string[]>([]);
   const currDivRefs = useRef<HTMLDivElement[]>([]);
   const currSaveRefs = useRef<HTMLButtonElement[]>([]);
+  const latestEntryRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setAnnotatedAnswers(chatData.map((chat) => chat.answer));
     setConvoData(chatData[chatData.length - 1]);
+
+    if (latestEntryRef.current) {
+      latestEntryRef.current.focus();
+    }
   }, [chatData]);
   const handleAnnotate = (index: number) => {
     if (
@@ -38,7 +43,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   const formatData = (currChat: IChatStruct, annotated_answer: string) => {
     const annotatedData: dbConversationStruct = {
-      q_id: questions[0].q_id,
+      q_id: questions[editingIndex].q_id,
       is_annotated: true,
       annotated_answer: annotated_answer,
       annotated_context: currChat.context,
@@ -119,13 +124,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   title="Edit Answer"
                   onClick={() => handleAnnotate(index)}
                   ref={(el) => (currDivRefs.current[index] = el)}
+                  tabIndex={index === chatData.length - 1 ? -1 : 0}
                 >
                   {annotatedAnswers[index]}
                   {editingIndex === index && (
                     <Button
                       onClick={() => handleSave(index)}
                       ref={(el) => (currSaveRefs.current[index] = el)}
-                      className="absolute bottom-0 right-0 h-[45%] w-[15%] mb-1 mr-1 bg-purple-700 text-white rounded-md"
+                      className="absolute bottom-0 right-0 h-[30px] w-[45px] mb-1 mr-1 bg-purple-700 text-white rounded-md"
                     >
                       <FaPen />
                     </Button>

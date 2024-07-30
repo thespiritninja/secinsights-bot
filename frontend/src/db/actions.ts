@@ -36,5 +36,5 @@ export async function getAnnotatedQuestions() {
     .select()
     .from(conversation)
     .where(eq(conversation.is_annotated, true));
-  return response[0];
+  return response;
 }

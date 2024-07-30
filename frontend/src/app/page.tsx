@@ -269,9 +269,14 @@ export default function Home() {
       console.error("Error in handleSubmit:", error);
     }
     // await createTestEntry();
-    // const questionData = formatQuestionData(convoData);
-    // const response = await createQuestionDBEntry(questionData);
-    setQuestions([...questions, { question: values.question, q_id: "123456" }]);
+    const questionData = formatQuestionData(
+      modelResponse[modelResponse.length - 1]
+    );
+    const response = await createQuestionDBEntry(questionData);
+    setQuestions([
+      ...questions,
+      { question: values.question, q_id: response.q_id },
+    ]);
   };
 
   const fetchConvoData = async (question: string) => {
@@ -290,17 +295,15 @@ export default function Home() {
   const handleImportAnnotation = async () => {
     const response = await getAnnotatedQuestions();
     console.log(response);
-    const data = [
-      {
-        q_id: response.q_id,
-        question: response.question,
-        model_answer: response.model_answer,
-        model_context: JSON.stringify(response.model_context),
-        is_annotated: response.is_annotated,
-        annotated_answer: response.annotated_answer,
-        annotated_context: JSON.stringify(response.annotated_context),
-      },
-    ];
+    const data = response.map((item) => ({
+      q_id: item.q_id,
+      question: item.question,
+      model_answer: item.model_answer,
+      model_context: JSON.stringify(item.model_context),
+      is_annotated: item.is_annotated,
+      annotated_answer: item.annotated_answer,
+      annotated_context: JSON.stringify(item.annotated_context),
+    }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
@@ -312,7 +315,7 @@ export default function Home() {
     });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
 
-    saveAs(blob, "annotations.xlsx");
+    saveAs(blob, "username_annotations.xlsx");
   };
 
   return (
