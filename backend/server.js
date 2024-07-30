@@ -1,6 +1,9 @@
 require("dotenv").config();
 const path = require("path");
 const express = require("express");
+const session = require("express-session");
+const cors = require("cors");
+
 const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
 const { ChatOpenAI } = require("@langchain/openai");
 const { OpenAIEmbeddings } = require("@langchain/openai");
@@ -13,8 +16,7 @@ const { ChatPromptTemplate } = require("@langchain/core/prompts");
 const { ChromaClient } = require("chromadb");
 const { Chroma } = require("@langchain/community/vectorstores/chroma");
 const { BufferMemory } = require("langchain/memory");
-const session = require("express-session");
-const cors = require("cors");
+const { Document } = require("langchain/document");
 
 const app = express();
 const PORT = 8001;
@@ -23,9 +25,6 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
-
-const client = new ChromaClient();
-const { Document } = require("langchain/document");
 
 const model = new ChatOpenAI({
   model: "gpt-4o",
@@ -56,7 +55,6 @@ function parseJSONtoDocs(jsonData) {
 async function initDB() {
   const persistDirectory = path.join(__dirname, "chroma_data");
   try {
-    // Try to load existing vectorstore
     vectorstore = await Chroma.fromExistingCollection(new OpenAIEmbeddings(), {
       collectionName: "documents",
       directory: persistDirectory,
@@ -64,7 +62,6 @@ async function initDB() {
     console.log("Existing vectorstore loaded");
     return vectorstore;
   } catch (error) {
-    // If loading fails, create a new vectorstore
     console.log("Error loading vectorstore");
     return Promise.reject(new Error("Error loading vectorstore"));
   }
