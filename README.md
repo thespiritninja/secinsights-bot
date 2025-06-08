@@ -1,6 +1,6 @@
 ## Setup Instructions
 
-### Start by cloning [essential-ai-assessment](https://github.com/thespiritninja/essential-ai-assessment) repo
+### Start by cloning [secinsights](https://github.com/thespiritninja/essential-ai-assessment) repo
 
 ### Once you have cloned the repo on your local; you'll see two folders, You need to create .env files in both the folders
 
@@ -89,5 +89,3 @@ If everything goes well, we have our backend up and running, now we move to fron
 ### Now you can start asking questions through the chatbox and the details will be populated accordingly
 
 ### In case you encounter any issues with the setup feel free to reach out to me via [email](mailto:shreyassawant018@gmail.com), I'll be sure to guide you through it.
-
-### In the meantime, I'm also in the process of hosting this application and will update you with the access link accordingly.
